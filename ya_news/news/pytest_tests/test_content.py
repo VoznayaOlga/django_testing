@@ -1,25 +1,24 @@
 import pytest
 from django.conf import settings
 from django.urls import reverse
+
 from news.forms import CommentForm
 
 
-@pytest.mark.django_db
-def test_news_count(client):
+def test_news_count(client, news_page):
     """Количество новостей на главной странице — не более 10"""
     # Загружаем главную страницу.
     url = reverse("news:home")
     response = client.get(url)
     # Код ответа не проверяем, его уже проверили в тестах маршрутов.
     # Получаем список объектов из словаря контекста.
+    assert 'object_list' in response.context
     object_list = response.context['object_list']
     # Определяем количество записей в списке.
-    news_count = object_list.count()
     # Проверяем, что на странице именно 10 новостей
-    assert news_count <= settings.NEWS_COUNT_ON_HOME_PAGE
+    assert object_list.count() == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
-@pytest.mark.django_db
 def test_news_order(client):
     """Новости отсортированы от самой свежей к самой старой.
 
@@ -27,6 +26,7 @@ def test_news_order(client):
     """
     url = reverse("news:home")
     response = client.get(url)
+    assert 'object_list' in response.context
     object_list = response.context['object_list']
     # Получаем даты новостей в том порядке, как они выведены на странице.
     all_dates = [news.date for news in object_list]
@@ -36,7 +36,6 @@ def test_news_order(client):
     assert all_dates == sorted_dates
 
 
-@pytest.mark.django_db
 def test_comments_order(client, news):
     """Комментарии на странице отдельной новости.
 
@@ -61,7 +60,6 @@ def test_comments_order(client, news):
     assert all_timestamps == sorted_timestamps
 
 
-@pytest.mark.django_db
 def test_anonymous_client_has_no_form(client, news):
     """Анонимному пользователю недоступна форма.
 
@@ -72,7 +70,6 @@ def test_anonymous_client_has_no_form(client, news):
     assert 'form' not in response.context
 
 
-@pytest.mark.django_db
 def test_authorized_client_has_form(author_client, news):
     """Авторизованному пользователю доступна форма.
 
@@ -80,5 +77,6 @@ def test_authorized_client_has_form(author_client, news):
     """
     url = reverse("news:detail", args=(news.id,))
     response = author_client.get(url)
+    assert 'form' in response.context
     # Проверим, что объект формы соответствует нужному классу формы.
     assert isinstance(response.context['form'], CommentForm)

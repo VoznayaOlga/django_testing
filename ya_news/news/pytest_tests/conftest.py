@@ -1,13 +1,13 @@
-# conftest.py
-import pytest
+from datetime import datetime, timedelta
 
 # Импортируем класс клиента.
+import pytest
 from django.test.client import Client
 from django.conf import settings
 from django.utils import timezone
-from datetime import datetime, timedelta
 
 # Импортируем модель заметки, чтобы создать экземпляр.
+from news.forms import BAD_WORDS
 from news.models import News, Comment
 
 
@@ -39,11 +39,10 @@ def not_author_client(not_author):
 
 @pytest.fixture
 def news():
-    news = News.objects.create(  # Создаём объект новости.
+    return News.objects.create(  # Создаём объект новости.
         title='Заголовок',
         text='Текст заметки',
     )
-    return news
 
 
 @pytest.fixture
@@ -78,7 +77,6 @@ def news_page():
             date=today - timedelta(days=index)
         )
         news_list.append(news_)
-    return news_list
 
 
 @pytest.fixture
@@ -86,11 +84,25 @@ def comments_for_news(news):
     comment_list = []
     now = timezone.now()
     for index in range(10):
-        comment = Comment.objects.create(
-            news, author, text=f'Tекст {index}',)
-        # Сразу после создания меняем время создания комментария.
-        comment.created = now + timedelta(days=index)
-        # И сохраняем эти изменения.
-        comment.save()
-        comment_list.append(comment)
-    return comment_list
+        comment_list.append(Comment(news=news, author=author,
+                                    text=f'Текст {index}'))
+    Comment.objects.bulk_create(comment_list)
+    comments = Comment.objects.get()
+    for index in range(Comment.objects.count()):
+        comments[index].created = now + timedelta(days=index)
+        comments[index].save()
+
+
+@pytest.fixture(autouse=True)
+def connect_db(db):
+    return True
+
+
+@pytest.fixture
+def comment_form_data():
+    return {'text': 'Текст комментария'}
+
+
+@pytest.fixture
+def comment_bad_words_form_data():
+    return {'text': f'Какой-то текст, {BAD_WORDS[0]}, еще текст'}

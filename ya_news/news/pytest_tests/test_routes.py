@@ -1,12 +1,10 @@
-# test_routes.py
-import pytest
 from http import HTTPStatus
 
+import pytest
 from django.urls import reverse
 from pytest_django.asserts import assertRedirects
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     'name, args',  # Имя параметра функции.
     # Значения, которые будут передаваться в name.
@@ -61,7 +59,6 @@ def test_pages_availability_for_different_users(
         ('news:delete', pytest.lazy_fixture('id_for_args')),
     ),
 )
-@pytest.mark.django_db
 # Передаём в тест анонимный клиент, name проверяемых страниц
 def test_redirect_for_anonymous_client(client, name, args):
     login_url = reverse('users:login')

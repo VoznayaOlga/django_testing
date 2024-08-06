@@ -1,26 +1,17 @@
 from http import HTTPStatus
 
-from django.test import TestCase
-from django.urls import reverse
-from django.contrib.auth import get_user_model
-
 from django.conf import settings
-from notes.models import Note
 
-User = get_user_model()
+from notes.tests.conftest import (TestNoteBaseClassWithCreation,
+                                  NOTES_ADD_URL,
+                                  NOTES_DELETE_URL,
+                                  NOTES_EDIT_URL,
+                                  NOTES_LIST_URL,
+                                  NOTES_SUCCESS_URL
+                                  )
 
 
-class TestRoutes(TestCase):
-
-    @classmethod
-    def setUpTestData(cls):
-        # Создаём двух пользователей с разными именами:
-        cls.author = User.objects.create(username='Ганс Христиан Андерсен')
-        cls.reader = User.objects.create(username='Читатель простой')
-        # Создаем заметку от имени этого пользователя
-        cls.note = Note.objects.create(title='Заголовок', text='Текст',
-                                       slug='Prem',
-                                       author=cls.author)
+class TestRoutes(TestNoteBaseClassWithCreation):
 
     def test_home_page(self):
         # доступность главной страницы для анонимного пользователя
@@ -28,37 +19,21 @@ class TestRoutes(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-    def test_availability_for_notes_done_and_add(self):
-        # Аутентифицированному пользователю доступна страница со списком
-        # заметок notes/, страница успешного добавления заметки done/,
-        # страница добавления новой заметки add/.
-        # Логиним пользователя в клиенте:
-        self.client.force_login(self.reader)
-        # Для каждой пары "пользователь - ожидаемый ответ"
-        # перебираем имена тестируемых страниц:
-        for name in ('notes:list', 'notes:success', 'notes:add'):
-            with self.subTest(user=self.reader, name=name):
-                url = reverse(name)
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
-
-    def test_availability_for_note_edit_and_delete(self):
+    def test_availability_for_authorized_user(self):
         users_statuses = (
-            (self.author, HTTPStatus.OK),
-            (self.reader, HTTPStatus.NOT_FOUND),
+            (NOTES_LIST_URL, self.reader_client, HTTPStatus.OK),
+            (NOTES_SUCCESS_URL, self.reader_client, HTTPStatus.OK),
+            (NOTES_ADD_URL, self.reader_client, HTTPStatus.OK),
+            (NOTES_EDIT_URL, self.reader_client, HTTPStatus.NOT_FOUND),
+            (NOTES_DELETE_URL, self.reader_client, HTTPStatus.NOT_FOUND),
+            (NOTES_EDIT_URL, self.author_client, HTTPStatus.OK),
+            (NOTES_DELETE_URL, self.author_client, HTTPStatus.OK),
         )
-        for user, status in users_statuses:
-            # Логиним пользователя в клиенте:
-            self.client.force_login(user)
-            # Для каждой пары "пользователь - ожидаемый ответ"
-            # перебираем имена тестируемых страниц:
-            for name in ('notes:edit', 'notes:delete'):
-                with self.subTest(user=user, name=name):
-                    url = reverse(name, args=(str(self.note.slug),))
-                    response = self.client.get(url)
-                    self.assertEqual(response.status_code, status)
+        for url, user_client, status in users_statuses:
+            with self.subTest(url=url, user_client=user_client, status=status):
+                response = user_client.get(url)
+                self.assertEqual(response.status_code, status)
 
-    # @unittest.skip('Редирект отключен')
     def test_redirect_for_anonymous_client(self):
         # При попытке перейти на страницу списка заметок,
         # страницу успешного добавления записи,
@@ -68,16 +43,10 @@ class TestRoutes(TestCase):
         # Сохраняем адрес страницы логина:
         login_url = settings.LOGIN_URL
         # В цикле перебираем имена страниц, с которых ожидаем редирект:
-        pages = (
-            ('notes:list', None),
-            ('notes:delete', (str(self.note.slug),),),
-            ('notes:edit', (str(self.note.slug),),),
-            ('notes:add', None),
-            ('notes:success', None),)
-        for name, param in pages:
-            with self.subTest(name=name):
-                # Получаем адрес страницы
-                url = reverse(name, args=param)
+        urls = [NOTES_LIST_URL, NOTES_ADD_URL, NOTES_EDIT_URL,
+                NOTES_ADD_URL, NOTES_SUCCESS_URL]
+        for url in urls:
+            with self.subTest(url=url):
                 # Получаем ожидаемый адрес страницы логина,
                 # на который будет перенаправлен пользователь.
                 # Учитываем, что в адресе будет параметр next, в котором
