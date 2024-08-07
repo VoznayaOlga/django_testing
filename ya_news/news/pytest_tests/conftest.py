@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 from django.test.client import Client
 from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 
 # Импортируем модель заметки, чтобы создать экземпляр.
@@ -80,17 +81,17 @@ def news_page():
 
 
 @pytest.fixture
-def comments_for_news(news):
+def comments_for_news(news, author):
     comment_list = []
     now = timezone.now()
     for index in range(10):
-        comment_list.append(Comment(news=news, author=author,
-                                    text=f'Текст {index}'))
-    Comment.objects.bulk_create(comment_list)
-    comments = Comment.objects.get()
-    for index in range(Comment.objects.count()):
-        comments[index].created = now + timedelta(days=index)
-        comments[index].save()
+        comment = Comment.objects.create(
+            news=news, author=author, text=f'Tекст {index}',)
+        # Сразу после создания меняем время создания комментария.
+        comment.created = now + timedelta(days=index)
+        # И сохраняем эти изменения.
+        comment.save()
+        comment_list.append(comment)
 
 
 @pytest.fixture(autouse=True)
@@ -106,3 +107,44 @@ def comment_form_data():
 @pytest.fixture
 def comment_bad_words_form_data():
     return {'text': f'Какой-то текст, {BAD_WORDS[0]}, еще текст'}
+
+
+@pytest.fixture
+def news_detail_url(news):
+    return reverse('news:detail', args=(news.id,))
+
+
+@pytest.fixture
+def news_delete_url(comment):
+    return reverse('news:delete', args=(comment.id,))
+
+
+@pytest.fixture
+def news_edit_url(comment):
+    return reverse('news:edit', args=(comment.id,))
+
+
+@pytest.fixture
+def news_home_url():
+    return reverse('news:home')
+
+
+@pytest.fixture
+def edited_comment(comment):
+    return {'comment_text': comment.text,
+            'comment_edited_text': comment.text + ' отредактированный'}
+
+
+@pytest.fixture
+def users_login():
+    return reverse('users:login')
+
+
+@pytest.fixture
+def users_logout():
+    return reverse('users:logout')
+
+
+@pytest.fixture
+def users_signup():
+    return reverse('users:signup')

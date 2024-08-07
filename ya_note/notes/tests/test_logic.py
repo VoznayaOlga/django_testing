@@ -1,8 +1,8 @@
 from http import HTTPStatus
 
 from pytils.translit import slugify
-
 from django.conf import settings
+
 from notes.forms import WARNING
 from notes.models import Note
 from notes.tests.conftest import (TestNoteBaseClass,
@@ -15,13 +15,12 @@ from notes.tests.conftest import (TestNoteBaseClass,
 class TestNoteCreate(TestNoteBaseClass):
 
     def test_empty_slug(self):
-        excepted_notes_count = Note.objects.count() + 1
         Note.objects.all().delete()
         self.form_data.pop('slug')
         response = self.author_client.post(NOTES_ADD_URL, data=self.form_data)
         # Проверяем, что даже без slug заметка была создана:
         self.assertRedirects(response, NOTES_SUCCESS_URL)
-        self.assertEqual(Note.objects.count(), excepted_notes_count)
+        self.assertEqual(Note.objects.count(), 1)
         # Получаем созданную заметку из базы:
         new_note = Note.objects.get()
         # Формируем ожидаемый slug:
@@ -37,16 +36,16 @@ class TestNoteCreate(TestNoteBaseClass):
         self.assertEqual(Note.objects.count(), excepted_notes_count)
 
     def test_user_can_create_note(self):
-        excepted_notes_count = Note.objects.count() + 1
         Note.objects.all().delete()
         response = self.author_client.post(NOTES_ADD_URL, data=self.form_data)
         self.assertRedirects(response, NOTES_SUCCESS_URL)
-        self.assertEqual(Note.objects.count(), excepted_notes_count)
+        self.assertEqual(Note.objects.count(), 1)
         new_note = Note.objects.get()
         # Сверяем атрибуты объекта с ожидаемыми.
         self.assertEqual(new_note.title, self.form_data['title'])
         self.assertEqual(new_note.text, self.form_data['text'])
         self.assertEqual(new_note.slug, self.form_data['slug'])
+        self.assertEqual(new_note.author, response.wsgi_request.user)
 
 
 class TestNote(TestNoteBaseClassWithCreation):

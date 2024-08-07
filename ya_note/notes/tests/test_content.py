@@ -17,7 +17,7 @@ class TestNoteList(TestNoteBaseClassWithCreation):
                               expected_value=expected_value):
                 response = user_client.get(NOTES_LIST_URL)
                 object_list = response.context['object_list']
-                self.assertEqual(self.note in object_list, expected_value)
+                self.assertIs(self.note in object_list, expected_value)
 
     def test_pages_contains_form(self):
         urls = [NOTES_EDIT_URL, NOTES_ADD_URL]

@@ -1,15 +1,13 @@
-import pytest
+# import pytest
 from django.conf import settings
-from django.urls import reverse
 
 from news.forms import CommentForm
 
 
-def test_news_count(client, news_page):
+def test_news_count(client, news_page, news_home_url):
     """Количество новостей на главной странице — не более 10"""
     # Загружаем главную страницу.
-    url = reverse("news:home")
-    response = client.get(url)
+    response = client.get(news_home_url)
     # Код ответа не проверяем, его уже проверили в тестах маршрутов.
     # Получаем список объектов из словаря контекста.
     assert 'object_list' in response.context
@@ -19,13 +17,12 @@ def test_news_count(client, news_page):
     assert object_list.count() == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
-def test_news_order(client):
+def test_news_order(client, news_page, news_home_url):
     """Новости отсортированы от самой свежей к самой старой.
 
     Свежие новости в начале списка.
     """
-    url = reverse("news:home")
-    response = client.get(url)
+    response = client.get(news_home_url)
     assert 'object_list' in response.context
     object_list = response.context['object_list']
     # Получаем даты новостей в том порядке, как они выведены на странице.
@@ -36,15 +33,13 @@ def test_news_order(client):
     assert all_dates == sorted_dates
 
 
-def test_comments_order(client, news):
+def test_comments_order(client, news, comments_for_news, news_detail_url):
     """Комментарии на странице отдельной новости.
 
     Отсортированы в хронологическом порядке:
     старые в начале списка, новые — в конце.
     """
-    pytest.lazy_fixture('comments_for_news')
-    url = reverse("news:detail", args=(news.id,))
-    response = client.get(url)
+    response = client.get(news_detail_url)
     # Проверяем, что объект новости находится в словаре контекста
     # под ожидаемым именем - названием модели.
     assert 'news' in response.context
@@ -60,23 +55,20 @@ def test_comments_order(client, news):
     assert all_timestamps == sorted_timestamps
 
 
-def test_anonymous_client_has_no_form(client, news):
+def test_anonymous_client_has_no_form(client, news, news_detail_url):
     """Анонимному пользователю недоступна форма.
 
     для отправки комментария на странице отдельной новости
     """
-    url = reverse("news:detail", args=(news.id,))
-    response = client.get(url)
+    response = client.get(news_detail_url)
     assert 'form' not in response.context
 
 
-def test_authorized_client_has_form(author_client, news):
-    """Авторизованному пользователю доступна форма.
-
+def test_authorized_client_has_form(author_client, news, news_detail_url):
+    """Авторизованному пользователю доступна форма
     для отправки комментария на странице отдельной новости
     """
-    url = reverse("news:detail", args=(news.id,))
-    response = author_client.get(url)
+    response = author_client.get(news_detail_url)
     assert 'form' in response.context
     # Проверим, что объект формы соответствует нужному классу формы.
     assert isinstance(response.context['form'], CommentForm)

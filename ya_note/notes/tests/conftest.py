@@ -37,7 +37,3 @@ class TestNoteBaseClassWithCreation(TestNoteBaseClass):
         cls.note = Note.objects.create(title='Заголовок новости', text='Текст',
                                        slug=DEFAULT_SLAG,
                                        author=cls.author)
-
-
-def get_notes_edit_url(param):
-    return reverse('note:edit', param)
