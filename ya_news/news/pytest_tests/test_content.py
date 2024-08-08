@@ -1,4 +1,3 @@
-# import pytest
 from django.conf import settings
 
 from news.forms import CommentForm
@@ -8,7 +7,6 @@ def test_news_count(client, news_page, news_home_url):
     """Количество новостей на главной странице — не более 10"""
     # Загружаем главную страницу.
     response = client.get(news_home_url)
-    # Код ответа не проверяем, его уже проверили в тестах маршрутов.
     # Получаем список объектов из словаря контекста.
     assert 'object_list' in response.context
     object_list = response.context['object_list']

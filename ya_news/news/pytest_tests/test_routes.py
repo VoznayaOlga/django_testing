@@ -3,16 +3,24 @@ from http import HTTPStatus
 import pytest
 from pytest_django.asserts import assertRedirects
 
+NEWS_DELETE_URL = pytest.lazy_fixture('news_edit_url')
+NEWS_DETAIL_URL = pytest.lazy_fixture('news_detail_url')
+NEWS_EDIT_URL = pytest.lazy_fixture('news_edit_url')
+NEWS_HOME_URL = pytest.lazy_fixture('news_home_url')
+USERS_LOGIN_URL = pytest.lazy_fixture('users_logout')
+USERS_LOGOUT_URL = pytest.lazy_fixture('users_logout')
+USERS_SIGNUP_URL = pytest.lazy_fixture('users_signup')
+
 
 @pytest.mark.parametrize(
     'url',
     # Значения, которые будут передаваться в name.
     (
-        pytest.lazy_fixture('news_home_url'),
-        pytest.lazy_fixture('users_login'),
-        pytest.lazy_fixture('users_logout'),
-        pytest.lazy_fixture('users_signup'),
-        pytest.lazy_fixture('news_detail_url'),
+        NEWS_HOME_URL,
+        USERS_LOGIN_URL,
+        USERS_LOGOUT_URL,
+        USERS_SIGNUP_URL,
+        NEWS_DETAIL_URL,
     )
 )
 # Указываем в фикстурах встроенный клиент.
@@ -35,8 +43,8 @@ def test_pages_availability_for_anonymous_user(client, news, comment, url):
 )
 @pytest.mark.parametrize(
     'url',
-    (pytest.lazy_fixture('news_edit_url'),
-     pytest.lazy_fixture('news_delete_url')),
+    (NEWS_EDIT_URL,
+     NEWS_DELETE_URL),
 )
 # В параметры теста добавляем имена parametrized_client и expected_status.
 # Проверяем доступность редактирования и удаления для автора и не автора
@@ -51,8 +59,8 @@ def test_pages_availability_for_different_users(
 
 @pytest.mark.parametrize(
     'url',
-    (pytest.lazy_fixture('news_edit_url'),
-     pytest.lazy_fixture('news_delete_url')),
+    (NEWS_EDIT_URL,
+     NEWS_DELETE_URL),
 )
 # Передаём в тест анонимный клиент, name проверяемых страниц
 def test_redirect_for_anonymous_client(client, url, users_login):

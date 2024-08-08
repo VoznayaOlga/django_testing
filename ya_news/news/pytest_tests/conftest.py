@@ -57,18 +57,6 @@ def comment(news, author):
 
 
 @pytest.fixture
-# Фикстура запрашивает другую фикстуру
-def id_for_args(comment):
-    return (comment.id,)
-
-
-@pytest.fixture
-# Фикстура запрашивает другую фикстуру
-def news_id_for_args(news):
-    return (news.id,)
-
-
-@pytest.fixture
 def news_page():
     news_list = []
     today = datetime.today()

@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
-from pytils.translit import slugify
 from django.conf import settings
+from pytils.translit import slugify
 
 from notes.forms import WARNING
 from notes.models import Note

@@ -1,4 +1,3 @@
-
 from http import HTTPStatus
 
 from pytest_django.asserts import assertRedirects, assertFormError
@@ -10,26 +9,27 @@ from news.models import Comment
 def test_anonymous_user_cant_create_comment(client, news, comment_form_data,
                                             news_detail_url):
     """Анонимный пользователь не может отправить комментарий."""
-    excepted_comment_count = Comment.objects.count()
+    Comment.objects.all().delete()
     # Совершаем запрос от анонимного клиента, в POST-запросе отправляем
     # предварительно подготовленные данные формы с текстом комментария.
-    client.get(news_detail_url, comment_form_data)
+    client.post(news_detail_url, comment_form_data)
     # Считаем количество комментариев.
-    # Ожидаем, что комментариев в базе нет - сравниваем с нулём.
-    assert Comment.objects.count() == excepted_comment_count
+    # Ожидаем, что комментариев в базе не стало больше, чем было
+    assert Comment.objects.count() == 0
 
 
 def test_user_can_create_comment(author, author_client, news,
-                                 comment_form_data, news_detail_url):
+                                 comment_form_data,
+                                 news_detail_url):
     """Авторизованный пользователь может отправить комментарий."""
-    excepted_comment_count = Comment.objects.count() + 1
+    Comment.objects.all().delete()
     # Совершаем запрос через авторизованный клиент.
     response = author_client.post(news_detail_url, data=comment_form_data)
     # Проверяем, что редирект привёл к разделу с комментами.
     assertRedirects(response, f'{news_detail_url}#comments')
     # Считаем количество комментариев.
-    # Убеждаемся, что есть один комментарий.
-    assert Comment.objects.count() == excepted_comment_count
+    # Убеждаемся, что добавлен один комментарий.
+    assert Comment.objects.count() == 1
     # Получаем объект комментария из базы.
     comment = Comment.objects.get()
     # Проверяем, что все атрибуты комментария совпадают с ожидаемыми.
@@ -46,8 +46,6 @@ def test_user_cant_use_bad_words(news, author_client,
     он не будет опубликован, а форма вернёт ошибку.
     """
     excepted_comment_count = Comment.objects.count()
-    # Формируем данные для отправки формы; текст включает
-    # первое слово из списка стоп-слов.
     # Отправляем запрос через авторизованный клиент.
     response = author_client.post(news_detail_url,
                                   data=comment_bad_words_form_data)
@@ -69,10 +67,8 @@ def test_author_can_delete_comment(news, author, comment, author_client,
     # От имени автора комментария отправляем DELETE-запрос на удаление.
     response = author_client.delete(news_delete_url)
     # Проверяем, что редирект привёл к разделу с комментариями.
-    # Заодно проверим статус-коды ответов.
     assertRedirects(response, news_detail_url + '#comments')
-    # Считаем количество комментариев в системе.
-    # Ожидаем ноль комментариев в системе.
+    # Проверяем, что количество комментариев не изменилось.
     assert Comment.objects.count() == excepted_comment_count
 
 
@@ -96,9 +92,9 @@ def test_author_can_edit_comment(author, comment, author_client,
     excepted_comment_count = Comment.objects.count()
     comment_form_data['text'] = edited_comment['comment_edited_text']
     author_client.post(news_edit_url, comment_form_data)
-    # Ожидаем ноль комментариев в системе.
+    # Ожидаем, что комментариев больше не стало
     assert Comment.objects.count() == excepted_comment_count
-    # Получаем единственные коммент в системе, можно было и без pk
+    # Получаем коммент в системе
     edit_comment = Comment.objects.get(pk=comment.id)
     assert edit_comment.text == edited_comment['comment_edited_text']
     assert edit_comment.author == comment.author
@@ -115,9 +111,9 @@ def test_user_cant_edit_comment_of_another_user(author, comment,
     excepted_comment_count = Comment.objects.count()
     comment_form_data['text'] = edited_comment['comment_edited_text']
     not_author_client.post(news_edit_url, comment_form_data)
-    # Ожидаем ноль комментариев в системе.
+    # Ожидаем, что комментариев больше не стало
     assert Comment.objects.count() == excepted_comment_count
-    # Получаем единственные коммент в системе, можно было и без pk
+    # Получаем коммент в системе
     edit_comment = Comment.objects.get(pk=comment.id)
     assert edit_comment.text == comment.text
     assert edit_comment.author == comment.author
